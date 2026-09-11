@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Income Bracket Estimator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:      #FAFAF6;
+    --paper-line: #DAD5C6;
+    --panel:      #FFFFFF;
+    --ink:        #1C2430;
+    --ink-soft:   #5B6472;
+    --brass:      #A9823F;
+    --brass-soft: #EFE4C8;
+    --up:         #2E6B4F;
+    --up-bg:      #E4EFE7;
+    --down:       #9A3E36;
+    --down-bg:    #F4E4E1;
+    --radius:     3px;
+    --serif:      'Source Serif 4', Georgia, serif;
+    --mono:       'IBM Plex Mono', 'Courier New', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background:
+      linear-gradient(var(--paper), var(--paper)),
+      repeating-linear-gradient(transparent, transparent 27px, rgba(28,36,48,0.028) 28px);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.55;
+    padding: 48px 20px 80px;
+  }
+
+  .sheet{
+    max-width: 760px;
+    margin: 0 auto;
+    background: var(--panel);
+    border: 1px solid var(--paper-line);
+    box-shadow: 0 1px 2px rgba(28,36,48,0.06), 0 12px 32px rgba(28,36,48,0.05);
+  }
+
+  /* ---------- Header ---------- */
+  .letterhead{
+    padding: 36px 44px 26px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .letterhead .kicker{
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    margin-bottom: 10px;
+  }
+  .letterhead h1{
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 30px;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .letterhead p{
+    margin: 0;
+    color: var(--ink-soft);
+    max-width: 52ch;
+  }
+
+  /* ---------- Form ---------- */
+  form{ padding: 8px 44px 12px; }
+
+  .section{ padding: 26px 0; border-bottom: 1px solid var(--paper-line); }
+  .section:last-of-type{ border-bottom: none; }
+
+  .section-title{
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 3px;
+  }
+  .section-note{
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin: 0 0 18px;
+  }
+
+  .grid{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px 20px;
+  }
+  .field{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1 1 calc(50% - 10px);
+    min-width: 210px;
+  }
+  .field.full{ flex-basis: 100%; }
+
+  label{
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    letter-spacing: 0.01em;
+  }
+
+  input, select{
+    font-family: var(--mono);
+    font-size: 13.5px;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: var(--radius);
+    padding: 9px 10px;
+    outline: none;
+    transition: border-color .15s ease, background .15s ease;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  select{
+    background-image: linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
+                       linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+    background-position: calc(100% - 16px) center, calc(100% - 11px) center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 30px;
+  }
+  input:focus, select:focus{
+    border-color: var(--brass);
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--brass-soft);
+  }
+  input:invalid:not(:placeholder-shown){ border-color: var(--down); }
+
+  .hint{ font-size: 11px; color: var(--ink-soft); }
+
+  /* ---------- Submit ---------- */
+  .submit-row{
+    padding: 26px 44px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  button{
+    font-family: var(--mono);
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: var(--ink);
+    border: none;
+    border-radius: var(--radius);
+    padding: 13px 26px;
+    cursor: pointer;
+    transition: background .15s ease, transform .1s ease;
+  }
+  button:hover{ background: #303c4d; }
+  button:active{ transform: translateY(1px); }
+  button:disabled{ background: var(--ink-soft); cursor: progress; }
+
+  .error-banner{
+    display:none;
+    font-size: 12.5px;
+    color: var(--down);
+    background: var(--down-bg);
+    border: 1px solid var(--down);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+  }
+  .error-banner.show{ display: block; }
+
+  /* ---------- Result ---------- */
+  #result{
+    display: none;
+    border-top: 2px solid var(--ink);
+  }
+  #result.show{ display: block; }
+
+  .result-head{
+    padding: 30px 44px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .result-head .kicker{
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+  }
+  .verdict{
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 700;
+    margin: 4px 0 0;
+  }
+  .verdict.high{ color: var(--up); }
+  .verdict.low{ color: var(--down); }
+
+  .confidence{
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    text-align: right;
+  }
+  .confidence b{ color: var(--ink); font-size: 15px; }
+
+  .gauge-wrap{ padding: 18px 44px 8px; }
+  .gauge{
+    position: relative;
+    height: 10px;
+    border-radius: 5px;
+    background: linear-gradient(to right, var(--down-bg) 0%, var(--down-bg) 50%, var(--up-bg) 50%, var(--up-bg) 100%);
+    border: 1px solid var(--paper-line);
+  }
+  .gauge-fill{
+    position: absolute;
+    top: -1px; bottom: -1px; left: -1px;
+    width: 0%;
+    background: var(--ink);
+    border-radius: 5px 0 0 5px;
+    opacity: 0.12;
+  }
+  .gauge-marker{
+    position: absolute;
+    top: -5px;
+    width: 2px; height: 20px;
+    background: var(--ink);
+    left: 0%;
+    transform: translateX(-1px);
+  }
+  .gauge-threshold{
+    position: absolute;
+    left: 50%; top: -5px;
+    width: 1px; height: 20px;
+    background: var(--brass);
+  }
+  .gauge-labels{
+    display: flex;
+    justify-content: space-between;
+    font-size: 10.5px;
+    color: var(--ink-soft);
+    margin-top: 8px;
+  }
+  .gauge-labels .mid{ color: var(--brass); }
+
+  .factors{ padding: 30px 44px 40px; }
+  .factors h2{
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 3px;
+  }
+  .factors .section-note{ margin-bottom: 22px; }
+
+  .factor-row{
+    display: grid;
+    grid-template-columns: 168px 1fr 54px;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 0;
+  }
+  .factor-name{
+    font-size: 12px;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .factor-track{
+    position: relative;
+    height: 8px;
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .factor-bar{ height: 100%; width: 0%; }
+  .factor-bar.up{ background: var(--up); }
+  .factor-bar.down{ background: var(--down); }
+  .factor-pct{
+    font-size: 11px;
+    text-align: right;
+    color: var(--ink-soft);
+  }
+  .factor-pct.up{ color: var(--up); }
+  .factor-pct.down{ color: var(--down); }
+
+  .legend{
+    display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px;
+    font-size: 11px; color: var(--ink-soft);
+  }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; margin-right: 10px; }
+  .legend span:last-child{ margin-right: 0; }
+  .swatch{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+  .swatch.up{ background: var(--up); }
+  .swatch.down{ background: var(--down); }
+
+  footer{
+    padding: 18px 44px 30px;
+    font-size: 11px;
+    color: var(--ink-soft);
+    border-top: 1px solid var(--paper-line);
+  }
+
+  @media (max-width: 600px){
+    body{ padding: 24px 10px 60px; }
+    .letterhead, form, .submit-row, .result-head, .gauge-wrap, .factors, footer{ padding-left: 22px; padding-right: 22px; }
+    .grid{ grid-template-columns: 1fr; }
+    .factor-row{ grid-template-columns: 110px 1fr 44px; }
+  }
+
+  :focus-visible{ outline: 2px solid var(--brass); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+
+  <div class="letterhead">
+    <div class="kicker">CENSUS INCOME MODEL — DEMO ESTIMATE</div>
+    <h1>Income Bracket Estimator</h1>
+    <p>Enter a profile below and a Random Forest model, trained on U.S. census records, will estimate the likelihood of earning above $50,000 a year.</p>
+  </div>
+
+  <form id="predict-form" novalidate>
+
+    <div class="section">
+      <p class="section-title">Personal</p>
+      <p class="section-note">Basic demographic details used by the model.</p>
+      <div class="grid">
+        <div class="field">
+          <label for="age">Age</label>
+          <input type="number" id="age" name="age" min="17" max="90" placeholder="e.g. 34" required>
+        </div>
+        <div class="field">
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender" required>
+            {% for g in gender_options %}<option value="{{ g }}">{{ g }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="race">Race</label>
+          <select id="race" name="race" required>
+            {% for r in race_options %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="native_country">Native country</label>
+          <select id="native_country" name="native_country" required>
+            {% for c in country_options %}<option value="{{ c }}" {% if c == "United-States" %}selected{% endif %}>{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <p class="section-title">Household</p>
+      <p class="section-note">Marital and family standing.</p>
+      <div class="grid">
+        <div class="field">
+          <label for="marital_status">Marital status</label>
+          <select id="marital_status" name="marital_status" required>
+            {% for m in marital_options %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="relationship">Relationship</label>
+          <select id="relationship" name="relationship" required>
+            {% for r in relationship_options %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <p class="section-title">Employment &amp; education</p>
+      <p class="section-note">What the person does, and how many hours a week.</p>
+      <div class="grid">
+        <div class="field">
+          <label for="workclass">Workclass</label>
+          <select id="workclass" name="workclass" required>
+            {% for w in workclass_options %}<option value="{{ w }}">{{ w }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="occupation">Occupation</label>
+          <select id="occupation" name="occupation" required>
+            {% for o in occupation_options %}<option value="{{ o }}">{{ o }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="educational_num">Education level</label>
+          <select id="educational_num" name="educational_num" required>
+            {% for label, num in education_map.items() %}<option value="{{ num }}">{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="hours_per_week">Hours worked / week</label>
+          <input type="number" id="hours_per_week" name="hours_per_week" min="1" max="99" placeholder="e.g. 40" required>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <p class="section-title">Capital activity</p>
+      <p class="section-note">Reported capital gains or losses for the year. Leave at 0 if none.</p>
+      <div class="grid">
+        <div class="field">
+          <label for="capital_gain">Capital gain (USD)</label>
+          <input type="number" id="capital_gain" name="capital_gain" min="0" max="99999" value="0" required>
+        </div>
+        <div class="field">
+          <label for="capital_loss">Capital loss (USD)</label>
+          <input type="number" id="capital_loss" name="capital_loss" min="0" max="4400" value="0" required>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-banner" id="error-banner"></div>
+
+    <div class="submit-row">
+      <button type="submit" id="submit-btn">Estimate income bracket</button>
+      <span class="hint" id="submit-hint"></span>
+    </div>
+  </form>
+
+  <div id="result">
+    <div class="result-head">
+      <div>
+        <div class="kicker">ESTIMATE</div>
+        <p class="verdict" id="verdict">—</p>
+      </div>
+      <div class="confidence">
+        model confidence<br><b id="confidence-val">—</b>
+      </div>
+    </div>
+
+    <div class="gauge-wrap">
+      <div class="gauge">
+        <div class="gauge-fill" id="gauge-fill"></div>
+        <div class="gauge-threshold"></div>
+        <div class="gauge-marker" id="gauge-marker"></div>
+      </div>
+      <div class="gauge-labels">
+        <span>≤ $50K likely</span>
+        <span class="mid">50% threshold</span>
+        <span>&gt; $50K likely</span>
+      </div>
+    </div>
+
+    <div class="factors">
+      <h2>What moved this estimate</h2>
+      <p class="section-note">The features with the largest effect on this specific prediction, most influential first.</p>
+      <div id="factor-list"></div>
+      <div class="legend">
+        <span><i class="swatch up"></i> pushes toward &gt; $50K</span>
+        <span><i class="swatch down"></i> pushes toward ≤ $50K</span>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Random Forest classifier trained on the UCI/Census "Adult" dataset · predictions are illustrative, not financial advice.
+  </footer>
+
+</div>
+
+<script>
+const form = document.getElementById('predict-form');
+const btn = document.getElementById('submit-btn');
+const hint = document.getElementById('submit-hint');
+const errorBanner = document.getElementById('error-banner');
+const result = document.getElementById('result');
+
+function showError(msg){
+  errorBanner.textContent = msg;
+  errorBanner.classList.add('show');
+}
+function clearError(){
+  errorBanner.classList.remove('show');
+  errorBanner.textContent = '';
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearError();
+  result.classList.remove('show');
+
+  const fd = new FormData(form);
+  const payload = Object.fromEntries(fd.entries());
+
+  btn.disabled = true;
+  btn.textContent = 'Estimating…';
+  hint.textContent = '';
+
+  try{
+    const res = await fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if(!res.ok){
+      showError(data.error || 'The model could not produce an estimate for this input.');
+      return;
+    }
+    renderResult(data);
+  } catch(err){
+    showError('Could not reach the model. Check that the server is running and try again.');
+  } finally{
+    btn.disabled = false;
+    btn.textContent = 'Estimate income bracket';
+  }
+});
+
+function renderResult(data){
+  const verdict = document.getElementById('verdict');
+  const isHigh = data.label === '>50K';
+  verdict.textContent = isHigh ? 'Likely earns > $50,000' : 'Likely earns \u2264 $50,000';
+  verdict.className = 'verdict ' + (isHigh ? 'high' : 'low');
+
+  document.getElementById('confidence-val').textContent = data.confidence + '%';
+
+  const marker = document.getElementById('gauge-marker');
+  const fill = document.getElementById('gauge-fill');
+  marker.style.left = data.prob_high + '%';
+  fill.style.width = data.prob_high + '%';
+
+  const list = document.getElementById('factor-list');
+  list.innerHTML = '';
+
+  if(!data.shap || data.shap.length === 0){
+    list.innerHTML = '<p class="section-note">No individual factor stood out for this prediction.</p>';
+  } else {
+    data.shap.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'factor-row';
+      row.innerHTML = `
+        <div class="factor-name" title="${f.feature}">${f.feature}</div>
+        <div class="factor-track"><div class="factor-bar ${f.direction}" style="width:0%"></div></div>
+        <div class="factor-pct ${f.direction}">${f.direction === 'up' ? '+' : '\u2212'}${f.pct}%</div>
+      `;
+      list.appendChild(row);
+      requestAnimationFrame(() => {
+        row.querySelector('.factor-bar').style.width = f.pct + '%';
+      });
+    });
+  }
+
+  result.classList.add('show');
+  result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+
+</body>
+</html>
